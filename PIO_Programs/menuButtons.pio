@@ -1,0 +1,58 @@
+; PIOASM Instruction set (All 9 informations)
+;   IN – shift up to 32 bits from a GPIO or register to the input shift register
+;   OUT – shift up to 32 bits from the Output Shift Register to a pin or register
+;   PULL – move the contents of the Tx FIFO to the output shift register
+;   PUSH – move the contents of the input shift register to the Rx FIF and clear the ISR.
+;   MOV – Copy data from a register or pin to some other register or pin.
+;   IRQ – Sets or clears an IRQ flag
+;   SET – Write an immediate value to a pin or register
+;   JMP – Jumps to an absolute address within the PIO instruction memory
+;   WAIT – stall execution until a specific pin or IRQ flag is set or unset
+
+.program menuButtons
+    set pindirs, 0
+
+.wrap_target
+start:
+    wait 0 pin 0
+    set x, 31
+
+sw_debounce_x:
+    jmp pin, start
+    ;nop [31]
+    jmp x--, sw_debounce_x [31]
+
+    irq wait 0 rel
+
+    wait 1 pin 0
+
+.wrap
+
+; C helper function for the PIO State Machine menuButtons Program
+% c-sdk {
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static inline void menuButtons_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config c = menuButtons_program_get_default_config(offset);     // Get the default config for (clk_div, ISR, OSR, FIFOs, Pin mappings, etc)
+    
+    // Run at 100kHz (10 microsecond per instruction)
+    double div = (double)SYS_CLK_KHZ / 150 / 10;
+    sm_config_set_clkdiv(&c, div);
+
+    sm_config_set_set_pins(&c, pin, 1);     // Configures the set pin
+    sm_config_set_in_pins(&c, pin);         // Configures the wait pin
+    sm_config_set_jmp_pin(&c, pin);         // Configures the jmp pin
+
+    pio_gpio_init(pio, pin);                // Connect the GPIO to the PIO block
+
+    pio_sm_init(pio, sm, offset, &c);       // Intitialize the State Machine
+    pio_sm_set_enabled(pio, sm, true);      // Enable the State Machine
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+%}

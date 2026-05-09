@@ -1,0 +1,40 @@
+; PIOASM Instruction set (All 9 informations)
+;   IN – shift up to 32 bits from a GPIO or register to the input shift register
+;   OUT – shift up to 32 bits from the Output Shift Register to a pin or register
+;   PULL – move the contents of the Tx FIFO to the output shift register
+;   PUSH – move the contents of the input shift register to the Rx FIF and clear the ISR.
+;   MOV – Copy data from a register or pin to some other register or pin.
+;   IRQ – Sets or clears an IRQ flag
+;   SET – Write an immediate value to a pin or register
+;   JMP – Jumps to an absolute address within the PIO instruction memory
+;   WAIT – stall execution until a specific pin or IRQ flag is set or unset
+
+.program magEncoder
+    mov y, !null
+.wrap_target
+start:
+    wait 1 pin 0          ; Wait for pulse to start
+    mov x, !null          ; Reset counter (all 1s)
+count:
+    jmp pin, continuing   ; If pin is still 1, keep counting
+    mov y, x              ; Pin is 0, invert X to get the count
+    ; push noblock          ; Send count to RX FIFO
+    jmp start             ; Wait for next pulse
+continuing:
+    jmp x-- count         ; Decrement X and loop
+.wrap
+
+; C helper function for the PIO State Machine magEncoder Program
+% c-sdk {
+static inline void magEncoder_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config c = magEncoder_program_get_default_config(offset);     // Get the default config for (clk_div, ISR, OSR, FIFOs, Pin mappings, etc)
+
+    sm_config_set_in_pins(&c, pin);         // Configures the wait pin
+    sm_config_set_jmp_pin(&c, pin);         // Configures the jmp pin
+
+    pio_gpio_init(pio, pin);                // Connect the GPIO to the PIO block
+
+    pio_sm_init(pio, sm, offset, &c);       // Intitialize the State Machine
+    pio_sm_set_enabled(pio, sm, true);      // Enable the State Machine
+}
+%}

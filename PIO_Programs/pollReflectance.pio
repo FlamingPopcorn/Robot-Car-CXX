@@ -1,0 +1,98 @@
+; PIO program to measure a QTR-1RC Reflectance Sensor timing
+;
+;   The typical sequence for reading a sensor is:
+;       - Set the I/O line to an output and drive it high
+;       - Allow at least 10 us for the 10 nF capacitor to charge
+;       - Make the I/O line an input (high impedance)
+;       - Measure the time for the capacitor to discharge by waiting for the I/O line to go low
+;
+;   https://www.pololu.com/product/959 Link for more information
+;
+; PIOASM Instruction set (All 9 informations)
+;   IN – shift up to 32 bits from a GPIO or register to the input shift register
+;   OUT – shift up to 32 bits from the Output Shift Register to a pin or register
+;   PULL – move the contents of the Tx FIFO to the output shift register
+;   PUSH – move the contents of the input shift register to the Rx FIF and clear the ISR.
+;   MOV – Copy data from a register or pin to some other register or pin.
+;   IRQ – Sets or clears an IRQ flag
+;   SET – Write an immediate value to a pin or register
+;   JMP – Jumps to an absolute address within the PIO instruction memory
+;   WAIT – stall execution until a specific pin or IRQ flag is set or unset
+
+.program pollReflectance
+.define PUBLIC TIMEOUT_LOOPS 45000
+    ; Wait for the C program to send the timeout value, then store it in the OSR
+    pull block
+.wrap_target
+next_cycle:
+    set pindirs, 1          ; Sets pin to Output Mode
+    set pins, 1             ; Sets pin high
+
+;     set y, 4 [3]            ; 50us delay at 150MHz (7500 cycles)
+; loop:
+;     set x, 29               ; [0..29] 10us delay at 150MHz (1500 cycles)
+; charge_delay:
+;     nop [19]                ; (19 + 1) + (28 + 1) = 49; 49 * 30 = 1470
+;     jmp x--, charge_delay [28] ; Run the delay Loop
+;     jmp y--, loop [27]; Run the delay Loop
+
+;     set x, 29               ; [0..29] 10us delay at 150MHz (1500 cycles)
+; charge_delay:
+;     nop [19]                ; (19 + 1) + (29 + 1) = 50; 50 * 30 = 1500
+;     jmp x--, charge_delay [29] ; Run the delay Loop
+
+    set x, 29               ; [0..29] 10us delay at 150MHz (5400 cycles)
+charge_delay:
+    nop [29]
+    nop [29]
+    nop [29]
+    nop [29]
+    nop [29]                ; 5*(29 + 1) + (29 + 1) = 50; 50 * 30 = 54  00
+    jmp x--, charge_delay [29]
+
+    set pindirs, 0          ; Set pin to Input Mode
+    ; mov x, !null            ; Load 0xFFFFFFFF because PIO can only decrement
+    mov x, osr              ; Load value from TX FIFO
+    
+    ; nop [4]                 ; A small "settle" delay to ensure the pin has transitioned
+
+wait_for_low:
+    jmp pin, counter
+    jmp push_data
+
+counter:
+    jmp x--, wait_for_low
+
+push_data:
+    ; mov isr, ~x             ; Invert x register to get count from 0 and put in the ISR
+    mov isr, x              ; Do the iversion in C
+    push noblock            ; Sends the value of the ISR to the RX FIFO
+.wrap
+
+; C helper function for the PIO State Machine pollReflectance Program
+% c-sdk {
+static inline void pollReflectance_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    ; // gpio_init(pin);
+    ; // gpio_set_dir(pin, GPIO_OUT);
+    ; // gpio_put(pin, 1);
+    ; // sleep_us(10); // Hold it high briefly
+    
+    pio_sm_config c = pollReflectance_program_get_default_config(offset);     // Get the default config for (clk_div, ISR, OSR, FIFOs, Pin mappings, etc)
+
+    ; // sm_config_set_clkdiv(&c, 1.0f);
+
+    sm_config_set_set_pins(&c, pin, 1);             // Configures the set pin
+    sm_config_set_in_pins(&c, pin);
+    sm_config_set_jmp_pin(&c, pin);                 // Configures the jmp pin
+
+    ; // sm_config_set_fi0fo_join(&c, PIO_FIFO_JOIN_RX);  // Configures the TX FIFO to join the RX FIFO for 8 slots total
+    
+    ; // gpio_set_function(pin, GPIO_FUNC_PIO1);    
+    pio_gpio_init(pio, pin);                        // Connect the GPIO to the PIO block
+    ; // gpio_set_input_enabled(pin, true);
+    gpio_disable_pulls(pin);
+
+    pio_sm_init(pio, sm, offset, &c);               // Intitialize the State Machine
+    pio_sm_set_enabled(pio, sm, true);              // Enable the State Machine
+}
+%}
