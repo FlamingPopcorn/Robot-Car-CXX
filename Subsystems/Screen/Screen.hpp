@@ -15,6 +15,8 @@ extern "C" {
 
 #include "menuButtons.pio.h"
 
+#include "Multicore.hpp"
+
 struct MenuState {
     volatile int currentPageID = 0;
     volatile int cursorOption = 0;
@@ -24,7 +26,7 @@ class Screen{
     private:
     i2c_inst_t *i2c;
     int addr;
-    ssd1306_t* disp;
+    ssd1306_t disp;
     PIO pio;
     uint pio_offset;
     int btn_up, btn_down, btn_select, btn_back;
@@ -42,14 +44,14 @@ class Screen{
 
         Screen(i2c_inst_t *i2c_port, int i2c_addr, PIO pio_block, int btnUp, int btnDown, int btnSelect, int btnBack)
             : i2c(i2c_port), addr(i2c_addr), pio(pio_block), btn_up(btnUp), btn_down(btnDown), btn_select(btnSelect), btn_back(btnBack), updated(false){
-            
-        // Initialize Display
-        ssd1306_init(disp, SCREEN_WIDTH, SCREEN_HEIGHT, addr, i2c_port);
-        ssd1306_contrast(disp, 0xFF);
 
-        ssd1306_clear(disp);
-        ssd1306_draw_string(disp, (SCREEN_WIDTH - strlen("Cheeto") * 5) / 2, SCREEN_HEIGHT * (2.0 / 5.0), 1, "Cheeto");
-        ssd1306_show(disp);
+        // Initialize Display
+        ssd1306_init(&disp, SCREEN_WIDTH, SCREEN_HEIGHT, addr, i2c_port);
+        ssd1306_contrast(&disp, 0xFF);
+
+        ssd1306_clear(&disp);
+        ssd1306_draw_string(&disp, (SCREEN_WIDTH - strlen("Cheeto") * 5) / 2, SCREEN_HEIGHT * (2.0 / 5.0), 1, "Cheeto");
+        ssd1306_show(&disp);
 
         instance = this;
 

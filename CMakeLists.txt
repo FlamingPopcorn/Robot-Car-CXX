@@ -23,7 +23,15 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
+
+# set(PICO_BOARD waveshare_rp2350_plus_w)
+set(PICO_PLATFORM rp2350)
+
+
 set(PICO_BOARD pico2_w CACHE STRING "Board type")
+# set(PICO_RP2350B 1)
+
+set(PICO_FLASH_SIZE_BYTES 16777216) 
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(.pico/pico_sdk_import.cmake)
@@ -37,14 +45,20 @@ pico_sdk_init()
 
 add_executable(${PROJECT_NAME}
         Robot-Car-C++.cpp
+        Multicore.cpp
 
         Subsystems/Drivetrain/Drivetrain.cpp
         Subsystems/Drivetrain/Motor.cpp
+        Subsystems/RemoteControl/RemoteControl.cpp
         Subsystems/Screen/Screen.cpp
         Subsystems/PIDController.cpp
 
         # Sensor Libraries
         Sensor_Libs/ssd1306.c
+
+            Sensor_Libs/VL53L1x/VL53L1X_api.c
+            Sensor_Libs/VL53L1x/VL53L1X_calibration.c
+            Sensor_Libs/VL53L1x/VL53L1X_platform.c
     )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -56,6 +70,7 @@ pico_set_program_version(${PROJECT_NAME} "0.1")
 
 # Generate PIO headers
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/PIO_Programs/menuButtons.pio)
+pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/PIO_Programs/quadrature.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(${PROJECT_NAME} 0)

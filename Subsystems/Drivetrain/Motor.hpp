@@ -10,11 +10,12 @@ class Motor{
 private:
     int pinFWD, pinRVS;
     uint pwmSlice;
+    bool reversed;
 public:
     float rps = 0;
     int pwm;
 
-    Motor(int pfwd, int prvs) : pinFWD(pfwd), pinRVS(prvs), pwmSlice(pwm_gpio_to_slice_num(pfwd)){
+    Motor(int pfwd, int prvs, bool rev) : pinFWD(pfwd), pinRVS(prvs), reversed(rev), pwmSlice(pwm_gpio_to_slice_num(pfwd)){
         gpio_set_function(pfwd, GPIO_FUNC_PWM);
         gpio_set_function(prvs, GPIO_FUNC_PWM);
 

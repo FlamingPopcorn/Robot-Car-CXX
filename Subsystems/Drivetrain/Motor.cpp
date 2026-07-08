@@ -6,7 +6,8 @@ void Motor::setVelocity(int16_t velocity){
 
     // velocity should be between -PWM_MAX and PWM_MAX
     uint16_t speed = std::abs(velocity);
-    if (speed > PWM_MAX) speed = PWM_MAX; 
+    if (speed > PWM_MAX) speed = PWM_MAX;
+    if (this->reversed) velocity *= -1;
 
     // pwm_set_both_levels() takes two uint16_t as the level foor both channels
     if (velocity > 0) {
