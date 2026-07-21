@@ -15,9 +15,9 @@ if(WIN32)
 else()
     set(USERHOME $ENV{HOME})
 endif()
-set(sdkVersion 2.2.0)
-set(toolchainVersion 14_2_Rel1)
-set(picotoolVersion 2.2.0-a4)
+set(sdkVersion 2.3.0)
+set(toolchainVersion 15_2_Rel1)
+set(picotoolVersion 2.3.0)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
@@ -89,7 +89,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Add any user requested libraries
 target_link_libraries(${PROJECT_NAME} 
         pico_multicore          # Required for Core 1
-        # pico_cyw43_arch_none    # Required for Led Pin Control bc through WiFi chip
+        pico_cyw43_arch_none    # Required for Led Pin Control bc through WiFi chip
+        pico_btstack_cyw43     
+        pico_btstack_ble
         pico_double             # Fast double-precision math for RP2350
         pico_float              # Fast float-precision math for RP2350
         # pico_flash              # Required for thread safe read/write to flash

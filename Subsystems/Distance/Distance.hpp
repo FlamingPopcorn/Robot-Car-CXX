@@ -19,7 +19,9 @@ class Distance{
         I2CBus i2c;
         VL53L1X_Sensor Left, Center, Right;
     public:
-        Distance(I2CBus i2c_inst) : i2c(i2c_inst){
+        Distance(I2CBus i2c_inst) : i2c(i2c_inst){}
+
+        void init(){
             // init all 3 ToF sensors
             for (uint8_t i = 0; i < 3; i++){
                 gpio_init(XSHUT_PINS[i]);

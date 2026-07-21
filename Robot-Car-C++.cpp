@@ -14,7 +14,11 @@
 
 #include "Subsystems\Ports\UART.hpp"
 #include "Subsystems\Ports\I2C.hpp"
+#include "Subsystems\Bluetooth\Bluetooth.hpp"
 #include "Subsystems\Drivetrain\Drivetrain.hpp"
+#include "Subsystems\Odometry\Odometry.hpp"
+#include "Subsystems\Odometry\Trajectory.hpp"
+#include "Subsystems\IMU\IMU.hpp"
 #include "Subsystems\RemoteControl\RemoteControl.hpp"
 #include "Subsystems\LineFollower\LineFollower.hpp"
 #include "Subsystems\Distance\Distance.hpp"
@@ -26,8 +30,13 @@ UARTBus UART0(uart0, UART_IBUS_TX, UART_IBUS_RX, UART_IBUS_BAUDRATE, false, true
 I2CBus I2C0(i2c0, I2C0_SDA, I2C0_SCL);
 I2CBus I2C1(i2c1, I2C1_SDA, I2C1_SCL);
 
-Drivetrain drivetrain(LEFT_MOTOR_FWD_PIN, LEFT_MOTOR_RVS_PIN, RIGHT_MOTOR_FWD_PIN, RIGHT_MOTOR_RVS_PIN);
+BluetoothLE BLE;
 
+Drivetrain drivetrain(LEFT_MOTOR_FWD_PIN, LEFT_MOTOR_RVS_PIN, RIGHT_MOTOR_FWD_PIN, RIGHT_MOTOR_RVS_PIN);
+DifferentialOdometry odometry;
+PathTracker pathTracker;
+
+BMI160 imu(I2C1, I2C_BMI160_ADDR);
 RemoteControl ibus(UART0);
 LineFollower lineFollower(I2C1, I2C_LINEFOLLOWER_ADDR);
 Distance distance(I2C1);
@@ -46,29 +55,60 @@ int main(){
         printf("Rebooted from Watchdog!\n");
     } else printf("Rebooting System...\n");
 
-    // if (cyw43_arch_init()) return -1;
+    printf("Starting Screen...\n");
+    screen.init();
 
-    MultiCore1.enabled = true;
+    printf("Starting IMU System...\n");
+    imu.init();
+    imu.calibrate();
+
+    // printf("Starting Line Following System...\n");
+    // LineFollower.init();
+
+    printf("Starting Distance System...\n");
+    distance.init();
+
     printf("Waiting on Core 1...\n");
+    MultiCore1.init();
     while(!MultiCore1.booted){
-        // printf("Waiting on core1 to boot\n");
-        sleep_ms(50);
+        printf("Waiting on core1 to boot\n");
+        sleep_ms(10);
     } printf("Core 1 Booted!\n");
     // MultiCore1.setMode(Remote_Control);
+
+    printf("Starting BLE Radio...\n");
+    BLE.init();
+    BLE.waitForBoot();
+    BLE.pauseRadio();
 
     printf("Starting Control Loop...\n");
     start_control_loop();
 
-    // printf("Starting Watchdog Timer...\n");
+    printf("Starting Watchdog Timer...\n");
     // Enable watchdog for 500ms
     // The second parameter is 'pause_on_debug' (true means it won't trigger while you're debugging)
-    // watchdog_enable(500, true);
- 
+    watchdog_enable(500, true);
+
     printf("Starting Main Loop\n");
     while (true) {
-        // auto [L, R] = drivetrain.getSpeeds();
-        // std::cout << "Speeds:" << L * MOTOR_OUTPUT_RATIO * WHEEL_CIRCUMFERENCE << " | " << R * MOTOR_OUTPUT_RATIO * WHEEL_CIRCUMFERENCE << "\n";
-        // std::cout << "Mode:" << MultiCore1.getMode() << " | " << "Channels: " << ibus.getChannel(CHANNEL_LSTICK_Y).value << " - " << ibus.getChannel(CHANNEL_RSTICK_X).value << " | " << "Target Speeds:" << drivetrain.target_drive_mm_s.load() << " | " << drivetrain.target_turn_mm_s.load() << " | " << "Input Speeds:" << drivetrain.pidL.input << " | " << drivetrain.pidR.input << " | " << "Setpoint Speeds:" << drivetrain.pidL.setpoint << " | " << drivetrain.pidR.setpoint << "\n";
+        // std::cout << "Mode:" << MultiCore1.getMode() << "\n";
+
+        // IMUData motion = imu.getMotion();
+        // std::cout << "Motion: " << "X:" << motion.accelX << " Y:" << motion.accelY << " Z:" << motion.accelZ << " R:" << motion.gyroX << " P:" << motion.gyroY << " Y:" << motion.gyroZ << "\n";
+        // Pose2D pos = odometry.getPose();
+        // std::cout << "X:" << pos.X << " Y:" << pos.Y << " Theta:" << pos.theta << " - " << pos.theta_rads << "\n";
+
+        // printf("Joystick: %d | %d\n", BLE.state.joystick_radius, BLE.state.joystick_angle);
+        // std::cout << "Dabble Controller State: " << BLE.state.joystick_radius << " | " << BLE.state.joystick_angle << " | " << BLE.state.select << " | " << BLE.state.start << " | " << BLE.state.triangle << " | " << BLE.state.circle << " | " << BLE.state.cross << " | " << BLE.state.square << "\n";
+        // std::cout << "Channels: " << ibus.getChannel(CHANNEL_LSTICK_Y).value << " | " << ibus.getChannel(CHANNEL_RSTICK_X).value << "\n";
+
+        // auto [pwmL, pwmR] = drivetrain.getMotorPWM();
+        // std::cout << "Motor PWM: " << pwmL << " | " << pwmR << "\n";
+
+        // std::cout << "Target Speeds:" << drivetrain.target_drive_mm_s.load() << " | " << drivetrain.target_turn_mm_s.load() << " PID Setpoints: " << drivetrain.pidL.setpoint << " | " << drivetrain.pidR.setpoint << " PID Inputs: " << drivetrain.pidL.input << " | " << drivetrain.pidR.input << "\n";
+        
+        // auto [Lv, Rv] = drivetrain.getVelocities();
+        // std::cout << "Wheel Velocities:" << Lv << " | " << Rv << "\n";
 
         // distance.readDistances();
         // auto [Ld, Cd, Rd] = distance.getDistances();
@@ -80,6 +120,6 @@ int main(){
         }
 
         // printf("Hello, world!\n");
-        sleep_ms(100);
+        sleep_ms(250);
     }
 }

@@ -4,8 +4,6 @@ extern "C" {
 
 #include "Screen.hpp"
 
-Screen* Screen::instance = nullptr;
-
 void Screen::process_menuButton(int button){            
         switch(button){
             case BTN_UP:
@@ -26,6 +24,14 @@ void Screen::process_menuButton(int button){
                     menu.currentPageID += 10;
                     Core1Mode m = static_cast<Core1Mode>(menu.currentPageID - 10);
                     MultiCore1.setMode(m);
+                    odometry.resetPose();
+                    menu.cursorOption = -1;
+                } else if (menu.currentPageID == 3 && menu.cursorOption == 1){ // Launch screen for specific mode
+                    menu.currentPageID += 10;
+                    Core1Mode m = Remote_Control_BLE;
+                    MultiCore1.setMode(m);
+                    odometry.resetPose();
+                    BLE.resumeRadio();
                     menu.cursorOption = -1;
                 } else if (menu.currentPageID < 4 && menu.cursorOption == 1){ // Go back
                     menu.currentPageID = 0;
@@ -93,6 +99,7 @@ void Screen::updateMenu(){
         case 3:
             ssd1306_draw_string(&disp, 8, 0, 1, "Radio Control Menu");
             ssd1306_draw_string(&disp, 12, 15, 1,"Go");
+            ssd1306_draw_string(&disp, 12, 25, 1,"Go - BLE");
             break;
         // Debug page
         case 4:

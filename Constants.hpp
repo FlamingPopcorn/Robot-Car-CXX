@@ -3,6 +3,8 @@
 
 // Math PI value
 constexpr double PI = 3.14159265358979323846;
+constexpr double DEG2RAD = PI / 180.0;
+constexpr double RAD2DEG = 180.0 / PI;
 
 // UART Instances
     #define UART_IBUS uart0
@@ -17,8 +19,9 @@ constexpr double PI = 3.14159265358979323846;
     #define I2C_LINEFOLLOWER i2c1
 
 // PIO Instances
-    #define PIO_BLOCK_MENU_BUTTONS pio0
-    #define PIO_BLOCK_MOTOR_ENCODERS pio1
+    #define PIO_BLOCK_MENU_BUTTONS pio1
+    #define PIO_BLOCK_MOTOR_ENCODERS_A pio2
+    #define PIO_BLOCK_MOTOR_ENCODERS_B pio2
 
 // Pins
     // IBUS UART0
@@ -57,31 +60,37 @@ constexpr double PI = 3.14159265358979323846;
     #define RIGHT_TOF_XSHUT_PIN     12
 
 // PID Constants
+    #define PID_PERIOD     0.020f
+
     #define LEFT_P          2.00f 
-    #define LEFT_I          0.15f
+    #define LEFT_I          0.10f
     #define LEFT_D          0.00f
-    #define LEFT_FF         1.00f 
-    #define LEFT_PERIOD     0.020f
+    #define LEFT_FF         0.80f 
 
     #define RIGHT_P         2.00f // Start identical to left
-    #define RIGHT_I         0.15f
+    #define RIGHT_I         0.10f
     #define RIGHT_D         0.00f
-    #define RIGHT_FF        1.00f
-    #define RIGHT_PERIOD    0.020f
+    #define RIGHT_FF        0.80f
+
+// Odometry Info
+    // Update Loop Period
+    #define ODOMETRY_PERIOD 0.010f
 
 // Motor Info
     // Wheel Dimensions
-    #define WHEEL_DIAMETER 34.0f // 34.0 mm
-    #define WHEEL_CIRCUMFERENCE (PI * WHEEL_DIAMETER)
+    #define WHEEL_DIAMETER_MM 33.0f // 34.0mm specs
+    #define WHEEL_CIRCUMFERENCE_MM (PI * WHEEL_DIAMETER_MM)
+    #define WHEEL_TRACK_WIDTH_MM 68.7f
+    #define WHEEL_BASE_LENGTH_MM 69.925f
 
     // Motor Speed
-    #define MAX_RPS 2.95f
-    #define MAX_MM_S (MAX_RPS * WHEEL_CIRCUMFERENCE)
+    #define MAX_RPS 6.00f
+    #define MAX_MM_S (MAX_RPS * WHEEL_CIRCUMFERENCE_MM)
     #define PWM_MAX 7499
     #define PWM_MAX_f (float)(PWM_MAX)
 
     // Output Ratio
-    #define PPR 3 * 4 // 12 counts per revolution
+    #define PPR 7 * 4 // 28 counts per revolution
     #define MOTOR_GEAR_RATIO 118 // 118:1 | See https://ae01.alicdn.com/kf/S9e4e949a5d8243abbc72038df690dcc7d.jpg
     #define MOTOR_OUTPUT_RATIO 1 / float(PPR * MOTOR_GEAR_RATIO)
 
@@ -95,6 +104,12 @@ constexpr double PI = 3.14159265358979323846;
     // Screen Menu
     #define MENU_BUTTONS ((const int[]){BTN_UP, BTN_DOWN, BTN_SELECT, BTN_BACK})
     #define MAX_PAGES 4
+
+// IMU BMI160 Sensor info
+    // Defualt I2C address
+    #define I2C_BMI160_ADDR 0x69
+
+    #define IMU_CALIBRATION_SAMPLES 128
 
 // Line Following Sensor Info
     // Defualt I2C address

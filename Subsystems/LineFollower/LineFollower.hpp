@@ -26,9 +26,7 @@ class LineFollower{
         const uint8_t LF_REG_ANALOG_BLOCK = 0x10;
         const uint8_t LF_REG_DIGITAL_BLOCK = 0x1A;
     public:
-        LineFollower(I2CBus i2c_inst, short addr) : i2c(i2c_inst), address(addr){
-
-        }
+        LineFollower(I2CBus i2c_inst, short addr) : i2c(i2c_inst), address(addr){}
 
         void readChannelsDigital(){
             int ret = i2c_write_blocking(i2c.port, address, &LF_REG_DIGITAL_MASK, 1, true);
